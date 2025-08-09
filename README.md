@@ -42,9 +42,6 @@ This Ansible project automatically sets up a complete development environment wi
    # Full development environment
    ansible-playbook playbooks/setup-development.yml
 
-   # Deploy services (PostgreSQL, Redis, Keycloak)
-   ansible-playbook playbooks/deploy-services.yml
-
    # Deploy web services with Nginx
    ansible-playbook playbooks/deploy-web-services.yml
    ```

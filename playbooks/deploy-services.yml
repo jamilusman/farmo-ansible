@@ -1,21 +1,21 @@
-# playbooks/deploy-services.yml
----
-- name: Deploy all services (PostgreSQL, Redis, Keycloak)
-  hosts: development
-  become: yes
+# # playbooks/deploy-services.yml
+# ---
+# - name: Deploy all services (PostgreSQL, Redis, Keycloak)
+#   hosts: development
+#   become: yes
 
-  roles:
-    - postgresql
-    - redis
-    - keycloak
+#   roles:
+#     - postgresql
+#     - redis
+#     - keycloak
 
-  post_tasks:
-    - name: Wait for services to be ready
-      wait_for:
-        port: "{{ item }}"
-        host: localhost
-        timeout: 60
-      loop:
-        - 5432  # PostgreSQL
-        - 6379  # Redis
-        - "{{ keycloak_port }}"  # Keycloak
+#   post_tasks:
+#     - name: Wait for services to be ready
+#       wait_for:
+#         port: "{{ item }}"
+#         host: localhost
+#         timeout: 60
+#       loop:
+#         - 5432  # PostgreSQL
+#         - 6379  # Redis
+#         - "{{ keycloak_port }}"  # Keycloak
