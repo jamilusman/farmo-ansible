@@ -1,0 +1,66 @@
+---
+- name: Deploy web services (Nginx, SSL, Keycloak)
+  hosts: localhost
+  connection: local
+  gather_facts: yes
+
+  pre_tasks:
+    - name: Ensure Docker is running
+      systemd:
+        name: docker
+        state: started
+      become: yes
+
+  roles:
+    - nginx
+    - postgresql  # Keycloak needs PostgreSQL
+    - redis
+    - keycloak
+
+  post_tasks:
+    - name: Wait for services to be ready
+      wait_for:
+        port: "{{ item }}"
+        host: localhost
+        timeout: 60
+      loop:
+        - 80    # Nginx HTTP
+        - 5432  # PostgreSQL
+        - 6379  # Redis
+        - "{{ keycloak_port | default(8080) }}"  # Keycloak
+
+    - name: Test HTTP endpoints
+      uri:
+        url: "{{ item }}"
+        method: GET
+        status_code: [200, 302]
+      loop:
+        - "http://localhost/health"
+        - "http://localhost"
+        - "http://localhost:8080/auth/"
+      ignore_errors: yes
+
+    - name: Display Farmo service URLs
+      debug:
+        msg: |
+          🌾 Farmo Platform Deployed Successfully!
+          
+          ✅ Main Website: http://localhost
+          ✅ Health Check: http://localhost/health
+          ✅ Keycloak Admin: http://localhost:8080/auth/admin
+          ✅ Keycloak Auth: http://localhost:8080/auth/
+          
+          📊 Database Information:
+          🐘 PostgreSQL: localhost:5432
+             Database: {{ postgres_db | default('farmo_dev') }}
+             Username: {{ postgres_user | default('farmouser') }}
+             Password: {{ postgres_password | default('devpassword') }}
+          
+          📦 Redis: localhost:6379
+          
+          🔧 Quick Tests:
+          docker ps                    # Check containers
+          redis-cli ping              # Test Redis
+          psql -h localhost -U {{ postgres_user | default('farmouser') }} -d {{ postgres_db | default('farmo_dev') }}
+          
+          🌾 Happy farming with Farmo! 🚜

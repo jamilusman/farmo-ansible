@@ -1,0 +1,84 @@
+---
+- name: Update apt cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+  become: yes
+
+- name: Install essential packages
+  apt:
+    name:
+      - curl
+      - wget
+      - git
+      - nano
+      - vim
+      - htop
+      - tree
+      - unzip
+      - software-properties-common
+      - apt-transport-https
+      - ca-certificates
+      - gnupg
+      - lsb-release
+      - build-essential
+      - python3-pip
+      - python3-venv
+      - ufw
+      - fail2ban
+      - python3-docker
+      - python3-psycopg2
+    state: present
+  become: yes
+
+- name: Create application user
+  user:
+    name: "{{ app_user }}"
+    shell: /bin/bash
+    home: "{{ app_directory }}"
+    create_home: yes
+    system: yes
+  become: yes
+
+- name: Create application directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: '0755'
+  loop:
+    - "{{ app_directory }}"
+    - "{{ app_directory }}/logs"
+    - "{{ app_directory }}/backups"
+    - "{{ app_directory }}/uploads"
+  become: yes
+
+- name: Configure firewall - allow SSH
+  ufw:
+    rule: allow
+    port: "22"
+  become: yes
+
+- name: Configure firewall - allow HTTP
+  ufw:
+    rule: allow
+    port: "80"
+  become: yes
+
+- name: Configure firewall - allow HTTPS
+  ufw:
+    rule: allow
+    port: "443"
+  become: yes
+
+- name: Configure firewall - allow app port
+  ufw:
+    rule: allow
+    port: "{{ app_port }}"
+  become: yes
+
+- name: Enable firewall
+  ufw:
+    state: enabled
+  become: yes

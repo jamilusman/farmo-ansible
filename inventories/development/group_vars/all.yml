@@ -1,0 +1,52 @@
+# inventories/development/group_vars/all.yml
+# Application Configuration
+app_name: farmo
+app_user: ansible
+ansible_user: "{{ app_user }}"
+app_directory: "/opt/{{ app_user }}"
+app_port: 3000
+
+# Database Configuration
+# postgres_image: "postgres:17"
+postgres_version: "16"
+postgres_db: farmo_dev
+postgres_user: farmo_user
+postgres_password: "{{ vault_postgres_password | default('devpassword') }}"
+postgres_admin_password: "devpassword"
+
+# Redis Configuration
+redis_port: 6379
+redis_maxmemory: 256mb
+
+# Nginx Configuration
+nginx_port: 80
+nginx_ssl_port: 443
+nginx_client_max_body_size: 50M
+
+# Keycloak Configuration
+keycloak_version: "23.0"
+keycloak_port: 8080
+keycloak_admin_user: admin
+keycloak_admin_password: "{{ vault_keycloak_admin_password | default('devpassword') }}"
+keycloak_realm: farmo
+
+# SSL Configuration
+ssl_email: jamilusman32@gmail.com
+ssl_enabled: "{{ ssl_enabled | default(false) }}"
+
+# Development Tools
+nodejs_version: "20"
+docker_compose_version: "2.38.0"
+
+
+vault_postgres_password: "devpassword"  # Default for development, override in production
+vault_keycloak_admin_password: "devpassword"  # Default for development, override in production
+
+# Docker Configuration
+docker_network_name: farmo-network
+
+# Redis Docker Configuration  
+redis_password: ""  # Empty for development, set for production
+redis_image: "redis:7.2-alpine"
+
+# PostgreSQL Docker Configuration

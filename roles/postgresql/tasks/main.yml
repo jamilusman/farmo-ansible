@@ -1,0 +1,64 @@
+---
+- name: Install PostgreSQL client tools
+  apt:
+    name:
+      - postgresql-client
+      - python3-psycopg2
+    state: present
+  become: yes
+
+- name: Create Docker network for farmo
+  docker_network:
+    name: farmo-network
+  become: yes
+
+- name: Stop existing PostgreSQL container
+  docker_container:
+    name: farmo-postgres
+    state: absent
+  become: yes
+  ignore_errors: yes
+
+- name: Remove PostgreSQL data directory
+  file:
+    path: "{{ app_directory }}/postgres-data"
+    state: absent
+  become: yes
+
+- name: Create PostgreSQL data directory
+  file:
+    path: "{{ app_directory }}/postgres-data"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: '0755'
+  become: yes
+
+- name: Run PostgreSQL container
+  docker_container:
+    name: farmo-postgres
+    image: "postgres:{{ postgres_version }}-alpine"
+    state: started
+    restart_policy: unless-stopped
+    ports:
+      - "5432:5432"
+    env:
+      POSTGRES_DB: "{{ postgres_db }}"
+      POSTGRES_USER: "{{ postgres_user }}"
+      POSTGRES_PASSWORD: "{{ postgres_password }}"
+    volumes:
+      - "{{ app_directory }}/postgres-data:/var/lib/postgresql/data"
+    networks:
+      - name: "{{ docker_network_name }}"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ postgres_user }} -d {{ postgres_db }}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  become: yes
+
+- name: Wait for PostgreSQL to be ready
+  wait_for:
+    port: 5432
+    host: localhost
+    timeout: 60

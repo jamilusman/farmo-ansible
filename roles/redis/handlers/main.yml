@@ -1,0 +1,7 @@
+---
+- name: restart redis container
+  docker_container:
+    name: "{{ app_name | default('farmo') }}-redis"
+    state: started
+    restart: yes
+  become: yes

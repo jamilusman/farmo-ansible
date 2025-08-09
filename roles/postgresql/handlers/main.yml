@@ -1,0 +1,7 @@
+---
+- name: restart postgresql container
+  docker_container:
+    name: farmo-postgres
+    state: started
+    restart: yes
+  become: yes

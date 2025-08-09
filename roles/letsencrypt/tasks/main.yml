@@ -1,0 +1,28 @@
+# roles/letsencrypt/tasks/main.yml
+---
+- name: Install Certbot
+  apt:
+    name:
+      - certbot
+      - python3-certbot-nginx
+    state: present
+
+- name: Check if SSL certificate exists
+  stat:
+    path: "/etc/letsencrypt/live/{{ domain_name }}/fullchain.pem"
+  register: ssl_cert
+
+- name: Obtain SSL certificate
+  command: >
+    certbot --nginx -d {{ domain_name }}
+    --non-interactive --agree-tos
+    --email {{ ssl_email }}
+  when: ssl_enabled and not ssl_cert.stat.exists
+
+- name: Setup automatic renewal
+  cron:
+    name: "Renew Let's Encrypt certificates"
+    minute: "0"
+    hour: "12"
+    job: "/usr/bin/certbot renew --quiet"
+  when: ssl_enabled

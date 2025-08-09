@@ -1,0 +1,55 @@
+---
+- name: Install Redis client tools
+  apt:
+    name:
+      - redis-tools
+    state: present
+  become: yes
+
+- name: Create Redis data directory
+  file:
+    path: "{{ app_directory }}/redis-data"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: '0755'
+  become: yes
+
+- name: Create Redis configuration file
+  template:
+    src: redis.conf.j2
+    dest: "{{ app_directory }}/redis.conf"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: '0644'
+  become: yes
+  notify: restart redis container
+
+- name: Run Redis container
+  docker_container:
+    name: farmo-redis
+    image: "{{ redis_image | default('redis:7.2-alpine') }}"
+    state: started
+    restart_policy: unless-stopped
+    recreate: yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - "{{ app_directory }}/redis-data:/data"
+      - "{{ app_directory }}/redis.conf:/usr/local/etc/redis/redis.conf"
+    command: redis-server /usr/local/etc/redis/redis.conf
+    networks:
+      - name: farmo-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  become: yes
+
+- name: Wait for Redis to be ready
+  wait_for:
+    port: 6379
+    host: localhost
+    timeout: 120
+    delay: 5

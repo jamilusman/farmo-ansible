@@ -1,0 +1,85 @@
+---
+- name: Setup development environment with Docker
+  hosts: localhost
+  connection: local
+  gather_facts: yes
+
+  pre_tasks:
+    - name: Update system packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+      become: yes
+
+  roles:
+    - common
+    - docker
+    - nodejs
+    - development-tools
+
+  post_tasks:
+    - name: Ensure user is in docker group
+      user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes
+      become: yes
+
+    - name: Create project directories in user home
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0755'
+      loop:
+        - "{{ ansible_env.HOME }}/Development"
+        - "{{ ansible_env.HOME }}/Development/farmo"
+        - "{{ ansible_env.HOME }}/Development/farmo/backend"
+        - "{{ ansible_env.HOME }}/Development/farmo/frontend"
+        - "{{ ansible_env.HOME }}/Development/farmo/mobile"
+      become: yes
+
+    - name: Display completion message
+      debug:
+        msg: |
+          Development environment setup complete!
+          
+          Installed:
+          - Docker & Docker Compose
+          - Node.js {{ nodejs_version }}
+          - VS Code with extensions
+          - PostgreSQL and Redis client tools
+          
+          Next steps:
+          1. Log out and log back in (for Docker group membership)
+          2. Run: ansible-playbook playbooks/deploy-databases.yml
+          3. Test with: docker ps
+
+- name: Deploy database containers
+  hosts: localhost
+  connection: local
+  gather_facts: yes
+
+  roles:
+    - postgresql
+    - redis
+
+  post_tasks:
+    - name: Display database connection info
+      debug:
+        msg: |
+          Database containers deployed!
+          
+          PostgreSQL:
+          - Host: localhost:5432
+          - Database: {{ postgres_db }}
+          - User: {{ postgres_user }}
+          - Password: {{ postgres_password }}
+          - Test: psql -h localhost -U {{ postgres_user }} -d {{ postgres_db }}
+          
+          Redis:
+          - Host: localhost:6379
+          - Test: redis-cli ping
+          
+          Container status: docker ps

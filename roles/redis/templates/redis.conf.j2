@@ -1,0 +1,25 @@
+# Redis configuration for {{ app_name | default('farmo') }}
+bind 0.0.0.0
+port 6379
+timeout 0
+tcp-keepalive 300
+
+# Memory management
+maxmemory {{ redis_maxmemory | default('256mb') }}
+maxmemory-policy allkeys-lru
+
+# Persistence
+save 900 1
+save 300 10
+save 60 10000
+
+# Logging
+loglevel notice
+
+# Other settings
+databases 16
+
+# Security
+{% if redis_password is defined and redis_password != "" %}
+requirepass {{ redis_password }}
+{% endif %}

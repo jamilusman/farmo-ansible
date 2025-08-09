@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:{{ keycloak_version }}
+    environment:
+      KEYCLOAK_ADMIN: {{ keycloak_admin_user }}
+      KEYCLOAK_ADMIN_PASSWORD: {{ keycloak_admin_password }}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: {{ postgres_user }}
+      KC_DB_PASSWORD: {{ postgres_password }}
+      KC_HOSTNAME: {{ domain_name }}
+      KC_HTTP_RELATIVE_PATH: /auth
+    ports:
+      - "{{ keycloak_port }}:8080"
+    depends_on:
+      - postgres
+    command: start-dev
+    networks:
+      - farmo-network
+
+networks:
+  farmo-network:
+    external: true

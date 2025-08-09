@@ -1,0 +1,84 @@
+---
+- name: Create Keycloak data directory
+  file:
+    path: "{{ app_directory }}/keycloak-data"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: '0755'
+  become: yes
+
+- name: Create Docker network (if not exists)
+  docker_network:
+    name: farmo-network
+  become: yes
+
+- name: Debug database variables
+  debug:
+    msg: |
+      DB User: {{ postgres_user }}
+      DB Password: {{ postgres_password }}
+      DB Name: {{ postgres_db }}
+
+- name: Wait for PostgreSQL to be ready
+  wait_for:
+    port: 5432
+    host: localhost
+    timeout: 60
+
+- name: Stop existing Keycloak container
+  docker_container:
+    name: farmo-keycloak
+    state: absent
+  become: yes
+  ignore_errors: yes
+
+- name: Create dedicated Keycloak database
+  postgresql_db:
+    name: keycloak_dev
+    owner: "{{ postgres_user }}"
+    login_host: localhost
+    login_user: "{{ postgres_user }}"
+    login_password: "{{ postgres_password }}"
+    port: 5432
+    state: present
+  become: yes
+
+- name: Run Keycloak container
+  docker_container:
+    name: farmo-keycloak
+    image: "quay.io/keycloak/keycloak:{{ keycloak_version }}"
+    state: started
+    restart_policy: unless-stopped
+    recreate: yes
+    ports:
+      - "{{ keycloak_port }}:8080"
+    env:
+      KEYCLOAK_ADMIN: "{{ keycloak_admin_user }}"
+      KEYCLOAK_ADMIN_PASSWORD: "{{ keycloak_admin_password }}"
+      KC_DB: postgres
+      KC_DB_URL: "jdbc:postgresql://farmo-postgres:5432/keycloak_dev"
+      KC_DB_USERNAME: "{{ postgres_user }}"
+      KC_DB_PASSWORD: "{{ postgres_password }}"
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+      KC_HTTP_ENABLED: "true"
+      KC_HEALTH_ENABLED: "true"
+      KC_METRICS_ENABLED: "true"
+    networks:
+      - name: "{{ docker_network_name }}"
+    command: start-dev
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/ready || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 15
+      start_period: 120s
+  become: yes
+
+- name: Wait for Keycloak to be ready
+  wait_for:
+    port: "{{ keycloak_port }}"
+    host: localhost
+    timeout: 300
+    delay: 60

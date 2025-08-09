@@ -1,0 +1,104 @@
+---
+
+- name: Remove existing Node.js and npm
+  apt:
+    name:
+      - nodejs
+      - npm
+    state: absent
+  become: yes
+
+- name: Install curl (needed for NodeSource setup)
+  apt:
+    name: curl
+    state: present
+    update_cache: yes
+  become: yes
+
+- name: Download and run NodeSource setup script
+  shell: curl -fsSL https://deb.nodesource.com/setup_{{ nodejs_version }}.x | sudo -E bash -
+  args:
+    creates: /etc/apt/sources.list.d/nodesource.list
+  become: yes
+
+- name: Install Node.js from NodeSource repository
+  apt:
+    name: nodejs
+    state: present
+    update_cache: yes
+  become: yes
+
+- name: Check Node.js version
+  command: node --version
+  register: node_version
+  changed_when: false
+
+- name: Display Node.js version
+  debug:
+    msg: "Installed Node.js version: {{ node_version.stdout }}"
+
+- name: Verify Node.js version meets requirements
+  assert:
+    that:
+      - node_version.stdout is version('v20.11.0', '>=')
+    fail_msg: "Node.js version {{ node_version.stdout }} is below required v20.11.0"
+    success_msg: "Node.js version {{ node_version.stdout }} meets requirements"
+
+- name: Install global npm packages
+  npm:
+    name: "{{ item }}"
+    global: yes
+  loop:
+    - nodemon
+    - pm2
+    - '@react-native-community/cli'
+    - typescript
+    - ts-node
+    - '@nestjs/cli'
+  become: yes
+
+- name: Test installed packages
+  command: "{{ item }}"
+  register: version_tests
+  changed_when: false
+  loop:
+    - "node --version"
+    - "npm --version"
+    - "nest --version"
+    - "nodemon --version"
+    - "tsc --version"
+
+- name: Display package versions
+  debug:
+    msg: "{{ item.item }}: {{ item.stdout }}"
+  loop: "{{ version_tests.results }}"
+
+# - name: Install Node.js from Ubuntu repository
+#   apt:
+#     name:
+#       - nodejs
+#       - npm
+#     state: present
+#     update_cache: yes
+#   become: yes
+
+# - name: Check Node.js version
+#   command: node --version
+#   register: node_version
+#   changed_when: false
+
+# - name: Display Node.js version
+#   debug:
+#     msg: "Installed Node.js version: {{ node_version.stdout }}"
+
+# - name: Install global npm packages
+#   npm:
+#     name: "{{ item }}"
+#     global: yes
+#   loop:
+#     - nodemon
+#     - pm2
+#     - '@react-native-community/cli'
+#     - typescript
+#     - ts-node
+#   become: yes
