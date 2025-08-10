@@ -1,14 +1,23 @@
-# roles/development-tools/tasks/main.yml
+# # roles/development-tools/tasks/main.yml
 ---
-- name: Install VS Code GPG key
-  apt_key:
+
+- name: Ensure keyrings directory exists
+  file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+
+- name: Download VS Code GPG key
+  get_url:
     url: https://packages.microsoft.com/keys/microsoft.asc
-    state: present
+    dest: /etc/apt/keyrings/microsoft.asc
+    mode: '0644'
 
 - name: Add VS Code repository
   apt_repository:
-    repo: "deb [arch=amd64,arm64,armhf] https://packages.microsoft.com/repos/code stable main"
+    repo: "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/microsoft.asc] https://packages.microsoft.com/repos/code stable main"
     state: present
+    filename: vscode
 
 - name: Install VS Code
   apt:
@@ -22,3 +31,28 @@
       - postgresql-client
       - redis-tools
     state: present
+
+
+
+# - name: Install VS Code GPG key
+#   apt_key:
+#     url: https://packages.microsoft.com/keys/microsoft.asc
+#     state: present
+
+# - name: Add VS Code repository
+#   apt_repository:
+#     repo: "deb [arch=amd64,arm64,armhf] https://packages.microsoft.com/repos/code stable main"
+#     state: present
+
+# - name: Install VS Code
+#   apt:
+#     name: code
+#     state: present
+#     update_cache: yes
+
+# - name: Install PostgreSQL client
+#   apt:
+#     name:
+#       - postgresql-client
+#       - redis-tools
+#     state: present
